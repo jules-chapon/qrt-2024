@@ -11,8 +11,43 @@ from predict_foot_result.configs import names
 
 RANDOM_SEED = 42
 
+
+###############################################################
+#                                                             #
+#                           ML CONFIG                         #
+#                                                             #
+###############################################################
+
 TRAIN_VALID_SPLIT = 0.2
 
+TARGET = names.LABEL
+
+###############################################################
+#                                                             #
+#                           LIGHTGBM                          #
+#                                                             #
+###############################################################
+
+LGBM_LABEL = names.LABEL
+
+LGBM_ID = [names.ID, names.HOME_TEAM_NAME, names.AWAY_TEAM_NAME]
+
+LGBM_PARAMS = {
+    "objective": "multiclass",
+    "num_class": 3,
+    "random_seed": RANDOM_SEED,
+    "verbose": -1,
+    "num_estimators": 100,
+    "early_stopping_rounds": 10,
+    "learning_rate": 0.1,
+    "max_depth": 15,
+    "max_leaves": 31,
+    "min_data_per_leaf": 20,
+    "bagging_fraction": 0.8,
+    "bagging_freq": 5,
+    "feature_fraction": 0.8,
+    # "lambda_l1": 0.1,
+}
 
 ###############################################################
 #                                                             #

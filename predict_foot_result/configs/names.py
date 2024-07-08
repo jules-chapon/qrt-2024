@@ -43,6 +43,9 @@ ATTACKER = "attacker"
 ID = "id"
 LEAGUE = "league"
 TEAM_NAME = "team_name"
+HOME_TEAM_NAME = "home_team_name"
+AWAY_TEAM_NAME = "away_team_name"
+
 # VARIATIONS
 SEASON = "season"
 LAST_MATCHES = "5_last_match"
@@ -57,6 +60,7 @@ DRAW = "draw"
 AWAY_WINS = "away_wins"
 # CREATED
 LABEL = "label"
+PREDICTED_LABEL = "predicted_label"
 
 
 ### TEAM

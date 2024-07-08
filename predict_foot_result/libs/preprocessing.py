@@ -1,11 +1,18 @@
 """Data preprocessing"""
 
 import os
-from typing import List
+from logger import logging
 import numpy as np
 import pandas as pd
 
 from predict_foot_result.configs import names, constants
+
+
+###############################################################
+#                                                             #
+#                        ALL FEATURES                         #
+#                                                             #
+###############################################################
 
 
 def import_features(is_train: bool, is_home: bool, is_team: bool) -> pd.DataFrame:
@@ -38,41 +45,125 @@ def import_features(is_train: bool, is_home: bool, is_team: bool) -> pd.DataFram
     csv_file_path = os.path.join(names.DATA_FOLDER, names.INPUT_FOLDER, file_name)
     df = pd.read_csv(csv_file_path)
     df.columns = [col.lower() for col in df.columns]
+    logging.info("Dataset of features imported")
+    logging.info(f"{ df.shape[0] } rows and { df.shape[1] } columns loaded")
     return df
 
 
-def keep_only_relevant_team_features(
-    df_team_features: pd.DataFrame, is_home: bool
+def rename_columns_for_home_or_away(
+    df_features: pd.DataFrame, is_home: bool
 ) -> pd.DataFrame:
     """
-    Keep only relevant features from the team dataset.
+    Rename columns to split between home and away features.
 
     Args:
-        df_team_features (pd.DataFrame): dataset of team features.
-        is_home (bool): whether the dataset is for home or away team.
+        df_features (pd.DataFrame): dataset of features.
+        is_home (bool): whether the dataset is for home or away.
 
     Returns:
-        pd.DataFrame: dataset with the relevant team features.
+        pd.DataFrame: datset with renamed columns.
     """
     if is_home:
         home = "home"
     else:
         home = "away"
+    # Rename all columns except IDs
+    df_features.set_index(names.ID, drop=True, inplace=True)
+    df_features.columns = [f"{ home }_{ col }" for col in df_features.columns]
+    df_features.reset_index(drop=False, inplace=True)
+    return df_features
+
+
+def merge_features(
+    df_features_1: pd.DataFrame,
+    df_features_2: pd.DataFrame,
+    is_same_feature_type: bool,
+    is_home: bool | None = None,
+) -> pd.DataFrame:
+    """
+    Merge datasets of features.
+
+    Args:
+        df_features_1 (pd.DataFrame): first dataset of features.
+        df_features_2 (pd.DataFrame): second dataset of features.
+        is_same_feature_type (bool): whether the datasets have the same feature type (both team or player).
+
+    Returns:
+        pd.DataFrame: dataset with all features.
+    """
+    if is_home is None:
+        home = ""
+    elif is_home:
+        home = "home_"
+    else:
+        home = "away_"
+    if is_same_feature_type:
+        cols_merge = names.ID
+    else:
+        cols_merge = [names.ID, f"{ home }{ names.TEAM_NAME }"]
+    df_features = pd.merge(df_features_1, df_features_2, on=cols_merge, how="left")
+    logging.info("Datasets of features merged")
+    return df_features
+
+
+###############################################################
+#                                                             #
+#                        TEAM FEATURES                        #
+#                                                             #
+###############################################################
+
+
+def keep_only_relevant_team_features(df_team_features: pd.DataFrame) -> pd.DataFrame:
+    """
+    Keep only relevant features from the team dataset.
+
+    Args:
+        df_team_features (pd.DataFrame): dataset of team features.
+
+    Returns:
+        pd.DataFrame: dataset with the relevant team features.
+    """
     # Define columns to keep
     cols_to_keep = (
         constants.COLS_FEATURES_ID
         + [
-            f"{ home }_{ col }_{ names.SEASON }_{ names.SUM }"
+            f"{ col }_{ names.SEASON }_{ names.SUM }"
             for col in constants.COLS_TEAM_FEATURES
         ]
         + [
-            f"{ home }_{ col }_{ names.LAST_MATCHES }_{ names.SUM }"
+            f"{ col }_{ names.LAST_MATCHES }_{ names.SUM }"
             for col in constants.COLS_TEAM_FEATURES
         ]
     )
     # Keep only the relevant columns
     df_team_relevant_features = df_team_features[cols_to_keep].copy()
     return df_team_relevant_features
+
+
+def preprocessing_team_features(is_train: bool, is_home: bool) -> pd.DataFrame:
+    """
+    Preprocessing of team features.
+
+    Args:
+        is_train (bool): whether the dataset is for training or testing.
+        is_home (bool): whether the dataset is for home or away team.
+
+    Returns:
+        pd.DataFrame: clean dataset of team features.
+    """
+    df_team_features = import_features(is_train=is_train, is_home=is_home, is_team=True)
+    df_team_features = keep_only_relevant_team_features(df_team_features)
+    df_team_features = rename_columns_for_home_or_away(
+        df_team_features, is_home=is_home
+    )
+    return df_team_features
+
+
+###############################################################
+#                                                             #
+#                       PLAYER FEATURES                       #
+#                                                             #
+###############################################################
 
 
 def rank_players_by_position_and_appearances(
@@ -89,7 +180,7 @@ def rank_players_by_position_and_appearances(
     """
     cols_groupby = [names.ID, names.TEAM_NAME, names.POSITION]
     df_player_features[names.PLAYER_RANK] = df_player_features.groupby(cols_groupby)[
-        "_".join([names.PLAYER_STARTING_LINEUP, names.SEASON, names.SUM])
+        "_".join([names.PLAYER_MINUTES_PLAYED, names.SEASON, names.SUM])
     ].rank(method="dense")
     return df_player_features
 
@@ -156,6 +247,36 @@ def format_player_features(df_player_features: pd.DataFrame) -> pd.DataFrame:
     return df_new_format
 
 
+def keep_only_relevant_player_features(
+    df_player_features: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Keep only relevant player features.
+
+    Args:
+        df_player_features (pd.DataFrame): dataset of player features.
+    Returns:
+        pd.DataFrame: dataset with only relevant player features.
+    """
+    # Defining columns to keep
+    cols_to_keep = []
+    for position in constants.dict_nb_players_by_position.keys():
+        for rank in range(constants.dict_nb_players_by_position[position]):
+            cols_to_add_season = [
+                f"{ position }_{ rank + 1 }_{ col_name }_{ names.SEASON }_{ names.SUM }"
+                for col_name in constants.dict_relevant_features_by_position[position]
+            ]
+            cols_to_add_last_matches = [
+                f"{ position }_{ rank + 1 }_{ col_name }_{ names.LAST_MATCHES }_{ names.SUM }"
+                for col_name in constants.dict_relevant_features_by_position[position]
+            ]
+            cols_to_keep += cols_to_add_season + cols_to_add_last_matches
+    # Selecting only relevant columns
+    df_player_relevant_features = df_player_features[cols_to_keep].copy()
+    df_player_relevant_features.reset_index(drop=False, inplace=True)
+    return df_player_relevant_features
+
+
 def preprocessing_player_features(
     is_train: bool,
     is_home: bool,
@@ -176,78 +297,16 @@ def preprocessing_player_features(
     df_player_features = rank_players_by_position_and_appearances(df_player_features)
     df_player_features = keep_only_relevant_players(df_player_features)
     df_player_features = format_player_features(df_player_features)
+    df_player_features = keep_only_relevant_player_features(df_player_features)
+    df_player_features = rename_columns_for_home_or_away(df_player_features, is_home)
     return df_player_features
 
 
-def keep_only_relevant_player_features(
-    df_player_features: pd.DataFrame,
-    is_home: bool,
-) -> pd.DataFrame:
-    """
-    Keep only relevant player features.
-
-    Args:
-        df_player_features (pd.DataFrame): dataset of player features.
-        is_home (bool): whether the dataset is for home or away team.
-
-    Returns:
-        pd.DataFrame: dataset with only relevant player features.
-    """
-    if is_home:
-        home = "home"
-    else:
-        home = "away"
-    # Defining columns to keep
-    cols_to_keep = []
-    for position in constants.dict_nb_players_by_position.keys():
-        for rank in range(constants.dict_nb_players_by_position[position]):
-            cols_to_add_season = [
-                f"{ home }_{ position }_{ rank + 1 }_{ col_name }_{ names.SEASON }_{ names.SUM }"
-                for col_name in constants.dict_relevant_features_by_position[position]
-            ]
-            cols_to_add_last_matches = [
-                f"{ home }_{ position }_{ rank + 1 }_{ col_name }_{ names.LAST_MATCHES }_{ names.SUM }"
-                for col_name in constants.dict_relevant_features_by_position[position]
-            ]
-            cols_to_keep += cols_to_add_season + cols_to_add_last_matches
-    # Selecting only relevant columns
-    df_player_relevant_features = df_player_features[cols_to_keep].copy()
-    df_player_relevant_features.reset_index(drop=False, inplace=True)
-    return df_player_relevant_features
-
-
-def preprocessing_team_features(is_train: bool, is_home: bool) -> pd.DataFrame:
-    """
-    Preprocessing of team features.
-
-    Args:
-        is_train (bool): whether the dataset is for training or testing.
-        is_home (bool): whether the dataset is for home or away team.
-
-    Returns:
-        pd.DataFrame: clean dataset of team features.
-    """
-    df_team_features = import_features(is_train=is_train, is_home=is_home, is_team=True)
-    df_team_features = keep_only_relevant_team_features(df_team_features, is_home)
-    return df_team_features
-
-
-def merge_features(
-    list_df_features: List[pd.DataFrame],
-) -> pd.DataFrame:
-    """
-    Merge datasets of features.
-
-    Args:
-        list_df_features (List[pd.DataFrame]): list of datasets of features.
-
-    Returns:
-        pd.DataFrame: dataset with all features.
-    """
-    df_features = list_df_features[0]
-    for df in list_df_features[1:]:
-        df_features = df_features.merge(df, on=constants.COLS_FEATURES_ID, how="left")
-    return df_features
+###############################################################
+#                                                             #
+#                            LABELS                           #
+#                                                             #
+###############################################################
 
 
 def import_training_labels() -> pd.DataFrame:
@@ -307,6 +366,13 @@ def merge_labels_and_features(
     return df_merged
 
 
+###############################################################
+#                                                             #
+#                          PIPELINES                          #
+#                                                             #
+###############################################################
+
+
 def preprocessing_learning() -> pd.DataFrame:
     """
     Pipeline for the preprocessing of the learning dataset.
@@ -319,16 +385,36 @@ def preprocessing_learning() -> pd.DataFrame:
     df_learning_team_away = preprocessing_team_features(True, False)
     df_learning_player_home = preprocessing_player_features(True, True)
     df_learning_player_away = preprocessing_player_features(True, False)
-    df_learning_features = merge_features(
-        [
-            df_learning_team_home,
-            df_learning_team_away,
-            df_learning_player_home,
-            df_learning_player_away,
-        ]
+    df_learning_home = merge_features(
+        df_learning_team_home, df_learning_player_home, False, True
     )
+    df_learning_away = merge_features(
+        df_learning_team_away, df_learning_player_away, False, False
+    )
+    df_learning_features = merge_features(df_learning_home, df_learning_away, True)
     df_learning = merge_labels_and_features(df_learning_labels, df_learning_features)
     return df_learning
+
+
+def preprocessing_testing() -> pd.DataFrame:
+    """
+    Pipeline for the preprocessing of the testing dataset.
+
+    Returns:
+        pd.DataFrame: testing dataset.
+    """
+    df_testing_team_home = preprocessing_team_features(True, True)
+    df_testing_team_away = preprocessing_team_features(True, False)
+    df_testing_player_home = preprocessing_player_features(True, True)
+    df_testing_player_away = preprocessing_player_features(True, False)
+    df_testing_home = merge_features(
+        df_testing_team_home, df_testing_player_home, False, True
+    )
+    df_testing_away = merge_features(
+        df_testing_team_away, df_testing_player_away, False, False
+    )
+    df_testing = merge_features(df_testing_home, df_testing_away, True)
+    return df_testing
 
 
 # df_player_0 = import_features(True, True, False)
