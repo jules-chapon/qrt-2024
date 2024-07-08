@@ -50,6 +50,15 @@ SUM = "sum"
 AVERAGE = "average"
 STD = "std"
 
+### LABELS
+# BASIS
+HOME_WINS = "home_wins"
+DRAW = "draw"
+AWAY_WINS = "away_wins"
+# CREATED
+LABEL = "label"
+
+
 ### TEAM
 # STATISTICS
 TEAM_SHOTS_TOTAL = "team_shots_total"
