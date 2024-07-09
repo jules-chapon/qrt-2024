@@ -1,9 +1,6 @@
-"""Class for LGBM model"""
+"""Class for dummy model"""
 
 import os
-from typing import List
-import lightgbm as lgb
-from logger import logging
 import pickle as pkl
 import numpy as np
 import pandas as pd
@@ -15,9 +12,10 @@ from predict_foot_result.model.classification_model import (
 )
 
 
-class LgbmClassificationModel(ClassificationModel):
+class DummyClassificationModel(ClassificationModel):
     """
-    Class to represent LGBM classification models.
+    Class to represent dummy classification models.
+    We always predict home team wins.
 
     Attributes
     ----------
@@ -32,7 +30,7 @@ class LgbmClassificationModel(ClassificationModel):
         path: str | None = None,
         target: str | None = constants.TARGET,
         features: list | str | None = None,
-        params: dict | None = constants.LGBM_PARAMS,
+        params: dict | None = None,
         cols_id: list | str | None = names.ID,
         train_valid_split: float = constants.TRAIN_VALID_SPLIT,
         metrics: dict | None = None,
@@ -44,7 +42,7 @@ class LgbmClassificationModel(ClassificationModel):
             self (_ClassificationModel): Class object.
             name (str): Name of the model.
             path (str | None, optional): Path to the model. Defaults to None.
-            target (str | None, optional): Target of the model. Defaults to None.
+            target (str | None, optional): Target of the model. Defaults to constants.TARGET.
             features (list | str | None, optional): Features of the model. Defaults to None.
             params (dict | None, optional): Hyperparameters of the model. Defaults to None.
             cols_id (list | str | None, optional): Columns used as IDs. Defaults to None.
@@ -55,25 +53,6 @@ class LgbmClassificationModel(ClassificationModel):
         super().__init__(
             name, path, target, features, params, cols_id, train_valid_split, metrics
         )
-
-    def define_features(
-        self: _ClassificationModel,
-        df_learning: pd.DataFrame,
-        list_features: List[str] | None = None,
-        list_cols_to_drop: List[str] | None = constants.LGBM_ID
-        + [constants.LGBM_LABEL],
-    ) -> None:
-        """
-        Define features for the model.
-
-        Args:
-            self (_ClassificationModel): Class object.
-            df_learning (pd.DataFrame): Learning dataset.
-            list_features (List[str] | None, optional): List of features. Defaults to None.
-            list_cols_to_drop (List[str] | None, optional): List of columns to drop.
-                Defaults to 'constants.LGBM_ID + [constants.LGBM_LABEL]'.
-        """
-        return super().define_features(df_learning, list_features, list_cols_to_drop)
 
     def train(
         self: _ClassificationModel,
@@ -89,33 +68,21 @@ class LgbmClassificationModel(ClassificationModel):
             df_valid (pd.DataFrame): Validation set.
         """
 
-        train_data = lgb.Dataset(df_train[self.features], label=df_train[self.target])
-        valid_data = lgb.Dataset(df_valid[self.features], label=df_valid[self.target])
-        lgbm_model = lgb.train(
-            params=constants.LGBM_PARAMS,
-            train_set=train_data,
-            valid_sets=[train_data, valid_data],
-        )
-        self.model = lgbm_model
-        logging.info("Training of the model completed")
-
     def predict(
         self: _ClassificationModel,
         df_to_predict: pd.DataFrame,
-    ) -> np.ndarray:
+    ) -> pd.Series:
         """
-        Predict the label for a given dataset.
+        Get predictions of the model.
 
         Args:
             self (_ClassificationModel): Class object.
-            df_to_predict (pd.DataFrame): Dataset to make predictions from.
+            df_to_predict (pd.DataFrame): DataFrame to make predictions with.
 
         Returns:
-            np.ndarray: Predictions.
+            pd.Series: Predicted values.
         """
-        df_to_predict = df_to_predict[self.features]
-        predictions_proba = self.model.predict(df_to_predict)
-        predictions_label = np.argmax(predictions_proba, axis=1)
+        predictions_label = np.full(df_to_predict.shape[0], 0)
         return predictions_label
 
     def fine_tune(

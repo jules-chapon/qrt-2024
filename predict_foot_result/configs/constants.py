@@ -35,6 +35,7 @@ LGBM_ID = [names.ID, names.HOME_TEAM_NAME, names.AWAY_TEAM_NAME]
 LGBM_PARAMS = {
     "objective": "multiclass",
     "num_class": 3,
+    "metric": "multi_logloss",
     "random_seed": RANDOM_SEED,
     "verbose": -1,
     "num_estimators": 100,

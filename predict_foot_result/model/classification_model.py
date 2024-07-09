@@ -15,14 +15,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 
-from predict_foot_result.configs import constants
+from predict_foot_result.configs import names, constants
 
-
-###############################################################
-#                                                             #
-#                    CLASSIFICATION CLASS                     #
-#                                                             #
-###############################################################
 
 _ClassificationModel = typing.TypeVar(
     "_ClassificationModel", bound="ClassificationModel"
@@ -47,7 +41,7 @@ class ClassificationModel(abc.ABC):
         target: str | None = None,
         features: list | str | None = None,
         params: dict | None = None,
-        cols_id: list | str | None = None,
+        cols_id: list | str | None = names.ID,
         train_valid_split: float = constants.TRAIN_VALID_SPLIT,
         metrics: dict | None = None,
     ) -> None:
@@ -188,9 +182,9 @@ class ClassificationModel(abc.ABC):
             label_pred (np.ndarray): Predicted labels.
         """
         accuracy = accuracy_score(label_true, label_pred)
-        precision = precision_score(label_true, label_pred)
-        recall = recall_score(label_true, label_pred)
-        f1 = f1_score(label_true, label_pred)
+        precision = precision_score(label_true, label_pred, average="macro")
+        recall = recall_score(label_true, label_pred, average="macro")
+        f1 = f1_score(label_true, label_pred, average="macro")
         dict_scores = {
             "accuracy": accuracy,
             "precision": precision,
