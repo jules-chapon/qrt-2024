@@ -37,7 +37,7 @@ class ClassificationModel(abc.ABC):
     def __init__(
         self: _ClassificationModel,
         name: str,
-        path: str | None = None,
+        path: str | None = names.MODELS_FOLDER,
         target: str | None = None,
         features: list | str | None = None,
         params: dict | None = None,
@@ -51,7 +51,7 @@ class ClassificationModel(abc.ABC):
         Args:
             self (_ClassificationModel): Class object.
             name (str): Name of the model.
-            path (str | None, optional): Path to the model. Defaults to None.
+            path (str | None, optional): Path to the model. Defaults to names.MODELS_FOLDER.
             target (str | None, optional): Target of the model. Defaults to None.
             features (list | str | None, optional): Features of the model. Defaults to None.
             params (dict | None, optional): Hyperparameters of the model. Defaults to None.
@@ -260,7 +260,6 @@ class ClassificationModel(abc.ABC):
         self.get_metrics(df_train, df_valid)
         logging.info("Training pipeline completed")
 
-    @abc.abstractmethod
     def save_model(
         self: _ClassificationModel,
     ) -> None:
@@ -270,22 +269,26 @@ class ClassificationModel(abc.ABC):
         Args:
             self (_ClassificationModel): Class object.
         """
+        os.makedirs(self.path, exist_ok=True)
+        with open(os.path.join(self.path, f"{ self.name }.pkl"), "wb") as file:
+            pkl.dump(self, file)
 
     @classmethod
-    @abc.abstractmethod
     def load_model(
         cls,
         name: str,
-        path: str,
+        path: str = names.MODELS_FOLDER,
     ) -> _ClassificationModel:
         """
         Load previously trained model.
 
         Args:
             name (str): Name of the model.
-            path (str): _description_
+            path (str): Path of the models folder. Defaults to names.MODELS_FOLDER.
 
         Returns:
             _ClassificationModel: _description_
         """
-        return pkl.load(open(os.path.join(path, name), "rb"), encoding="latin1")
+        return pkl.load(
+            open(os.path.join(path, f"{ name }.pkl"), "rb"), encoding="latin1"
+        )

@@ -29,7 +29,7 @@ class LgbmClassificationModel(ClassificationModel):
     def __init__(
         self: _ClassificationModel,
         name: str,
-        path: str | None = None,
+        path: str | None = names.MODELS_FOLDER,
         target: str | None = constants.TARGET,
         features: list | str | None = None,
         params: dict | None = constants.LGBM_PARAMS,
@@ -43,7 +43,7 @@ class LgbmClassificationModel(ClassificationModel):
         Args:
             self (_ClassificationModel): Class object.
             name (str): Name of the model.
-            path (str | None, optional): Path to the model. Defaults to None.
+            path (str | None, optional): Path to the model. Defaults to names.MODELS_FOLDER.
             target (str | None, optional): Target of the model. Defaults to None.
             features (list | str | None, optional): Features of the model. Defaults to None.
             params (dict | None, optional): Hyperparameters of the model. Defaults to None.
@@ -130,31 +130,3 @@ class LgbmClassificationModel(ClassificationModel):
             df_train (pd.DataFrame): Training set.
             df_valid (pd.DataFrame): Validation set.
         """
-
-    def save_model(
-        self: _ClassificationModel,
-    ) -> None:
-        """
-        Save the model.
-
-        Args:
-            self (_ClassificationModel): Class object.
-        """
-
-    @classmethod
-    def load_model(
-        cls,
-        name: str,
-        path: str,
-    ) -> _ClassificationModel:
-        """
-        Load previously trained model.
-
-        Args:
-            name (str): Name of the model.
-            path (str): _description_
-
-        Returns:
-            _ClassificationModel: _description_
-        """
-        return pkl.load(open(os.path.join(path, name), "rb"), encoding="latin1")
