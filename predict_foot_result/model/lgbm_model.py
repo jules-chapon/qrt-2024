@@ -1,10 +1,9 @@
 """Class for LGBM model"""
 
-import os
 from typing import List
 import lightgbm as lgb
 from logger import logging
-import pickle as pkl
+import optuna
 import numpy as np
 import pandas as pd
 
@@ -88,11 +87,10 @@ class LgbmClassificationModel(ClassificationModel):
             df_train (pd.DataFrame): Training set.
             df_valid (pd.DataFrame): Validation set.
         """
-
         train_data = lgb.Dataset(df_train[self.features], label=df_train[self.target])
         valid_data = lgb.Dataset(df_valid[self.features], label=df_valid[self.target])
         lgbm_model = lgb.train(
-            params=constants.LGBM_PARAMS,
+            params=self.params,
             train_set=train_data,
             valid_sets=[train_data, valid_data],
         )
@@ -118,6 +116,43 @@ class LgbmClassificationModel(ClassificationModel):
         predictions_label = np.argmax(predictions_proba, axis=1)
         return predictions_label
 
+    def fine_tuning_objective(
+        self: _ClassificationModel,
+        df_train: pd.DataFrame,
+        df_valid: pd.DataFrame,
+        trial: optuna.Trial,
+    ) -> float:
+        """
+        Objective function for fine-tuning hyperparameters using Optuna.
+
+        Args:
+            self (_ClassificationModel): Class object.
+            df_train (pd.DataFrame): Training set.
+            df_valid (pd.DataFrame): Validation set.
+            trial (optuna.Trial): Trial for optimization.
+
+        Returns:
+            float: Metric value to optimize.
+        """
+        params = self.params.copy()
+        params["learning_rate"] = trial.suggest_loguniform("learning_rate", 0.01, 0.3)
+        params["max_depth"] = trial.suggest_int("max_depth", 3, 15)
+        params["num_leaves"] = trial.suggest_int("num_leaves", 20, 150)
+        params["min_data_in_leaf"] = trial.suggest_int("min_data_in_leaf", 10, 100)
+        params["bagging_fraction"] = trial.suggest_uniform("bagging_fraction", 0.4, 1.0)
+        params["bagging_freq"] = trial.suggest_int("bagging_freq", 1, 7)
+        params["feature_fraction"] = trial.suggest_uniform("feature_fraction", 0.4, 1.0)
+        train_data = lgb.Dataset(df_train[self.features], label=df_train[self.target])
+        valid_data = lgb.Dataset(df_valid[self.features], label=df_valid[self.target])
+        lgbm_model = lgb.train(
+            params=params,
+            train_set=train_data,
+            valid_sets=[train_data, valid_data],
+        )
+        self.model = lgbm_model
+        accuracy = self.score(df_valid[self.target], self.predict(df_valid))["accuracy"]
+        return accuracy
+
     def fine_tune(
         self: _ClassificationModel,
         df_train: pd.DataFrame,
@@ -130,3 +165,9 @@ class LgbmClassificationModel(ClassificationModel):
             df_train (pd.DataFrame): Training set.
             df_valid (pd.DataFrame): Validation set.
         """
+        study = optuna.create_study(direction="maximize")
+        study.optimize(
+            lambda trial: self.fine_tuning_objective(df_train, df_valid, trial),
+            n_trials=constants.NB_OPTUNA_TRIALS,
+        )
+        self.params.update(study.best_params)

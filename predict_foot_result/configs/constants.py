@@ -11,7 +11,6 @@ from predict_foot_result.configs import names
 
 RANDOM_SEED = 42
 
-
 ###############################################################
 #                                                             #
 #                           ML CONFIG                         #
@@ -21,6 +20,8 @@ RANDOM_SEED = 42
 TRAIN_VALID_SPLIT = 0.2
 
 TARGET = names.LABEL
+
+NB_OPTUNA_TRIALS = 10
 
 ###############################################################
 #                                                             #
