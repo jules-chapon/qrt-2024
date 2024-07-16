@@ -132,10 +132,7 @@ dict_relevant_features_by_position = {
 #                                                             #
 ###############################################################
 
-COLS_FEATURES_ID = [
-    names.ID,
-    names.TEAM_NAME,
-]
+COLS_GROUPBY_PLAYER = [names.ID, names.POSITION]
 
 COLS_TEAM_FEATURES = [
     names.TEAM_SHOTS_TOTAL,

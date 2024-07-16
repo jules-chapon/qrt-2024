@@ -158,3 +158,4 @@ PLAYER_SHOTS_OFF_TARGET = "player_shots_off_target"
 # CREATED
 PLAYER_RANK = "player_rank"
 PLAYER_TO_KEEP = "player_to_keep"
+RANK_THRESHOLD = "rank_threshold"
