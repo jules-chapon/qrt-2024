@@ -16,6 +16,10 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 
 from predict_foot_result.configs import names, constants
+from predict_foot_result.libs.feature_selection import (
+    selecting_features_with_boruta,
+    selecting_features_with_random_columns,
+)
 
 
 _ClassificationModel = typing.TypeVar(
@@ -136,6 +140,26 @@ class ClassificationModel(abc.ABC):
         else:
             self.features = df_learning.columns.tolist()
         return None
+
+    def select_features(self: _ClassificationModel, df_train: pd.DataFrame) -> None:
+        """
+        Select relevant features.
+
+        Args:
+            self (_ClassificationModel): Class object.
+            df_train (pd.DataFrame): Training set.
+
+        Raises:
+            ValueError: If features are not defined.
+        """
+        if self.features is None:
+            raise ValueError("Features are not defined")
+        self.features = selecting_features_with_random_columns(
+            df_train, self.features, self.target
+        )
+        self.features = selecting_features_with_boruta(
+            df_train, self.features, self.target
+        )
 
     @abc.abstractmethod
     def train(

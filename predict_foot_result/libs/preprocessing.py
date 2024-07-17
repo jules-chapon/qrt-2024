@@ -75,6 +75,23 @@ def rename_columns_for_home_or_away(
     return df_features
 
 
+def replace_numerical_missing_values_by_0(df_features: pd.DataFrame) -> pd.DataFrame:
+    """
+    Replace numerical missing values by 0.
+
+    Args:
+        df_features (pd.DataFrame): Dataframe of features.
+
+    Returns:
+        pd.DataFrame: Dataframe with numerical missing values replaced by 0.
+    """
+    numerical_columns = list(df_features.select_dtypes(include=[np.number]).columns)
+    df_features[numerical_columns] = df_features[numerical_columns].fillna(
+        constants.LOW_VALUE_FEATURE
+    )
+    return df_features
+
+
 def merge_datasets(
     list_datasets: List[pd.DataFrame],
 ) -> pd.DataFrame:
@@ -115,11 +132,11 @@ def keep_only_relevant_team_features(df_team_features: pd.DataFrame) -> pd.DataF
     cols_to_keep = (
         [names.ID]
         + [
-            f"{ col }_{ names.SEASON }_{ names.SUM }"
+            f"{ col }_{ names.SEASON }_{ names.AVERAGE }"
             for col in constants.COLS_TEAM_FEATURES
         ]
         + [
-            f"{ col }_{ names.LAST_MATCHES }_{ names.SUM }"
+            f"{ col }_{ names.LAST_MATCHES }_{ names.AVERAGE }"
             for col in constants.COLS_TEAM_FEATURES
         ]
     )
@@ -143,6 +160,7 @@ def preprocessing_team_features(is_train: bool, is_home: bool) -> pd.DataFrame:
     df_team_features = keep_only_relevant_team_features(
         df_team_features=df_team_features
     )
+    df_team_features = replace_numerical_missing_values_by_0(df_team_features)
     df_team_features = rename_columns_for_home_or_away(
         df_features=df_team_features, is_home=is_home
     )
@@ -255,11 +273,11 @@ def keep_only_relevant_player_features(
     for position in constants.dict_nb_players_by_position.keys():
         for rank in range(constants.dict_nb_players_by_position[position]):
             cols_to_add_season = [
-                f"{ position }_{ rank + 1 }_{ col_name }_{ names.SEASON }_{ names.SUM }"
+                f"{ position }_{ rank + 1 }_{ col_name }_{ names.SEASON }_{ names.AVERAGE }"
                 for col_name in constants.dict_relevant_features_by_position[position]
             ]
             cols_to_add_last_matches = [
-                f"{ position }_{ rank + 1 }_{ col_name }_{ names.LAST_MATCHES }_{ names.SUM }"
+                f"{ position }_{ rank + 1 }_{ col_name }_{ names.LAST_MATCHES }_{ names.AVERAGE }"
                 for col_name in constants.dict_relevant_features_by_position[position]
             ]
             cols_to_keep += cols_to_add_season + cols_to_add_last_matches
@@ -288,6 +306,7 @@ def preprocessing_player_features(
     )
     df_player_features = rank_players_by_position_and_appearances(df_player_features)
     df_player_features = keep_only_relevant_players(df_player_features)
+    df_player_features = replace_numerical_missing_values_by_0(df_player_features)
     df_player_features = format_player_features(df_player_features)
     df_player_features = keep_only_relevant_player_features(df_player_features)
     df_player_features = rename_columns_for_home_or_away(df_player_features, is_home)

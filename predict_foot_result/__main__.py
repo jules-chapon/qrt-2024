@@ -14,7 +14,7 @@ from predict_foot_result.model.dummy_model import DummyClassificationModel
 
 def learning_pipeline_lgbm():
     df_learning = preprocessing_learning()
-    model = LgbmClassificationModel("model_lgbm_1")
+    model = LgbmClassificationModel("model_lgbm_avg_no_na_1")
     model.training_pipeline(df_learning)
     return None
 
