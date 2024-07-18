@@ -36,10 +36,21 @@ MODELS_FOLDER = os.path.join(os.getcwd(), "predict_foot_result", "saved_models")
 #                                                             #
 ###############################################################
 
+# POSITIONS
 GOALKEEPER = "goalkeeper"
 DEFENDER = "defender"
 MIDFIELDER = "midfielder"
 ATTACKER = "attacker"
+
+# METRICS
+ACCURACY = "accuracy"
+PRECISION = "precision"
+RECALL = "recall"
+F1 = "f1"
+
+# DUMMY VARIABLES NAMES
+ALPHA = "alpha"
+BETA = "beta"
 
 
 ###############################################################
@@ -56,6 +67,8 @@ LEAGUE = "league"
 TEAM_NAME = "team_name"
 HOME_TEAM_NAME = "home_team_name"
 AWAY_TEAM_NAME = "away_team_name"
+HOME = "home"
+AWAY = "away"
 
 # VARIATIONS
 SEASON = "season"
@@ -99,6 +112,8 @@ TEAM_GOALS = "team_goals"
 TEAM_GAME_WON = "team_game_won"
 TEAM_GAME_DRAW = "team_game_draw"
 TEAM_GAME_LOST = "team_game_lost"
+# CREATED
+TEAM_DIFF_WINRATE = "team_diff_winrate"
 
 
 ### PLAYER

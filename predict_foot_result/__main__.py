@@ -11,17 +11,32 @@ from predict_foot_result.model.lgbm_model import LgbmClassificationModel
 
 from predict_foot_result.model.dummy_model import DummyClassificationModel
 
+from predict_foot_result.model.smart_model import SmartClassificationModel
+
 
 def learning_pipeline_lgbm():
     df_learning = preprocessing_learning()
-    model = LgbmClassificationModel("model_lgbm_avg_no_na_1")
-    model.training_pipeline(df_learning)
+    model = LgbmClassificationModel("model_lgbm_avg_nona_T_F_T")
+    model.training_pipeline(
+        df_learning=df_learning,
+        is_balanced_data=True,
+        feature_selection=False,
+        fine_tuning=True,
+    )
+    model.save_model()
     return None
 
 
 def learning_pipeline_dummy():
     df_learning = preprocessing_learning()
     model = DummyClassificationModel("model_dummy_1")
+    model.training_pipeline(df_learning)
+    return None
+
+
+def learning_pipeline_smart():
+    df_learning = preprocessing_learning()
+    model = SmartClassificationModel("model_smart_1")
     model.training_pipeline(df_learning)
     return None
 

@@ -10,10 +10,9 @@ import numpy as np
 import pandas as pd
 from logger import logging
 
-
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-
+from imblearn.over_sampling import RandomOverSampler
 
 from predict_foot_result.configs import names, constants
 from predict_foot_result.libs.feature_selection import (
@@ -94,6 +93,8 @@ class ClassificationModel(abc.ABC):
         Returns:
             Tuple[pd.DataFrame, pd.DataFrame]: Training and validation sets.
         """
+        # If temporal data:
+        # Validation set is the last part of the data based on the date column.
         if is_temporal:
             valid_dates = heapq.nlargest(
                 int(self.train_valid_split * df_learning[col_date].nunique()),
@@ -105,6 +106,8 @@ class ClassificationModel(abc.ABC):
             df_valid = df_learning[df_learning[col_date].isin(valid_dates)].sort_values(
                 self.cols_id
             )
+        # If not temporal data:
+        # Validation set is randomly split.
         else:
             df_train, df_valid = train_test_split(
                 df_learning,
@@ -115,6 +118,28 @@ class ClassificationModel(abc.ABC):
             df_valid = pd.DataFrame(df_valid).sort_values(self.cols_id)
         logging.info("Training and validation sets computed")
         return df_train, df_valid
+
+    def balance_labels(
+        self: _ClassificationModel, df_train: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Balance labels in the training set.
+
+        Args:
+            self (_ClassificationModel): Class object.
+            df_train (pd.DataFrame): Training set.
+
+        Returns:
+            pd.DataFrame: Training set with balanced labels.
+        """
+        # Balancing labels using RandomOverSampler.
+        ros = RandomOverSampler(random_state=constants.RANDOM_SEED)
+        y_train = df_train[self.target]
+        X_train = df_train.drop(columns=[self.target])
+        X_resampled, y_resampled = ros.fit_resample(X_train, y_train)
+        df_resampled = pd.concat([X_resampled, y_resampled], axis=1)
+        logging.info("Labels have been balanced in the training set")
+        return df_resampled
 
     def define_features(
         self: _ClassificationModel,
@@ -131,14 +156,17 @@ class ClassificationModel(abc.ABC):
             list_features (List[str] | None, optional): List of features. Defaults to None.
             list_cols_to_drop (List[str] | None, optional): List of columns to drop. Defaults to None.
         """
+        # Define features based on list_features or list_cols_to_drop.
         if list_features is not None:
             self.features = list_features
         elif list_cols_to_drop is not None:
             self.features = [
                 col for col in df_learning.columns if col not in list_cols_to_drop
             ]
+        # If no features are defined, use all columns.
         else:
             self.features = df_learning.columns.tolist()
+        logging.info("Features have been defined")
         return None
 
     def select_features(self: _ClassificationModel, df_train: pd.DataFrame) -> None:
@@ -154,12 +182,14 @@ class ClassificationModel(abc.ABC):
         """
         if self.features is None:
             raise ValueError("Features are not defined")
+        # Feature selection
         self.features = selecting_features_with_random_columns(
             df_train, self.features, self.target
         )
-        self.features = selecting_features_with_boruta(
-            df_train, self.features, self.target
-        )
+        # self.features = selecting_features_with_boruta(
+        #     df_train, self.features, self.target
+        # )
+        logging.info("relevant features have been selected")
 
     @abc.abstractmethod
     def train(
@@ -205,6 +235,7 @@ class ClassificationModel(abc.ABC):
             label_true (np.ndarray): True labels.
             label_pred (np.ndarray): Predicted labels.
         """
+        # Compute metrics
         accuracy = accuracy_score(label_true, label_pred)
         precision = precision_score(label_true, label_pred, average="macro")
         recall = recall_score(label_true, label_pred, average="macro")
@@ -266,6 +297,8 @@ class ClassificationModel(abc.ABC):
     def training_pipeline(
         self: _ClassificationModel,
         df_learning: pd.DataFrame,
+        is_balanced_data: bool = True,
+        feature_selection: bool = False,
         fine_tuning: bool = False,
     ) -> None:
         """
@@ -274,10 +307,16 @@ class ClassificationModel(abc.ABC):
         Args:
             self (_ClassificationModel): Class object.
             df_learning (pd.DataFrame): Learning dataset.
+            is_balanced_data (bool, optional): Whether labels are balanced or not. Defaults to True.
+            feature_selection (bool, optional): whether feature selection is performed. Defaults to False.
             fine_tuning (bool, optional): whether fine-tuning the model. Defaults to False.
         """
         self.define_features(df_learning)
         df_train, df_valid = self.get_train_valid_sets(df_learning)
+        if not is_balanced_data:
+            df_train = self.balance_labels(df_train)
+        if feature_selection:
+            self.select_features(df_train)
         if fine_tuning:
             self.fine_tune(df_train, df_valid)
         self.train(df_train, df_valid)
@@ -293,6 +332,7 @@ class ClassificationModel(abc.ABC):
         Args:
             self (_ClassificationModel): Class object.
         """
+        # Create folder and save the model
         os.makedirs(self.path, exist_ok=True)
         with open(os.path.join(self.path, f"{ self.name }.pkl"), "wb") as file:
             pkl.dump(self, file)
@@ -313,6 +353,7 @@ class ClassificationModel(abc.ABC):
         Returns:
             _ClassificationModel: _description_
         """
+        # Load model from file
         return pkl.load(
             open(os.path.join(path, f"{ name }.pkl"), "rb"), encoding="latin1"
         )
