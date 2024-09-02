@@ -16,6 +16,7 @@ optuna = "^4.0.0"
 pandas = "^2.2.2"
 pre-commit = "^3.8.0"
 python = "^3.10"
+ruff = "^0.6.3"
 scikit-learn = "^1.5.1"
 
 [build-system]
