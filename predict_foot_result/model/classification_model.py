@@ -186,9 +186,9 @@ class ClassificationModel(abc.ABC):
         self.features = selecting_features_with_random_columns(
             df_train, self.features, self.target
         )
-        # self.features = selecting_features_with_boruta(
-        #     df_train, self.features, self.target
-        # )
+        self.features = selecting_features_with_boruta(
+            df_train, self.features, self.target
+        )
         logging.info("relevant features have been selected")
 
     @abc.abstractmethod

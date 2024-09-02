@@ -64,7 +64,7 @@ def save_predictions(df_predictions: pd.DataFrame, file_name: str) -> None:
         file_name (str): Name of the CSV file to save predictions to.
     """
     df_predictions.to_csv(
-        os.path.join(names.DATA_FOLDER, names.RESULT_FOLDER, file_name)
+        os.path.join(names.DATA_FOLDER, names.RESULT_FOLDER, file_name), index=False
     )
     return None
 

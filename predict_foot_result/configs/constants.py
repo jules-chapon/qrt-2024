@@ -71,7 +71,7 @@ LGBM_PARAMS = {
     "bagging_fraction": 0.8,
     "bagging_freq": 5,
     "feature_fraction": 0.8,
-    # "lambda_l1": 0.1,
+    "lambda_l1": 0.1,
 }
 
 ###############################################################
