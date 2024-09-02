@@ -129,7 +129,7 @@ class LgbmClassificationModel(ClassificationModel):
             float: Metric value to optimize.
         """
         params = self.params.copy()
-        params["learning_rate"] = trial.suggest_loguniform("learning_rate", 0.01, 0.3)
+        params["learning_rate"] = trial.suggest_float("learning_rate", 0.01, 0.3, log=True)
         params["max_depth"] = trial.suggest_int("max_depth", 3, 15)
         params["num_leaves"] = trial.suggest_int("num_leaves", 20, 150)
         params["min_data_in_leaf"] = trial.suggest_int("min_data_in_leaf", 10, 100)
@@ -160,6 +160,7 @@ class LgbmClassificationModel(ClassificationModel):
             df_train (pd.DataFrame): Training set.
             df_valid (pd.DataFrame): Validation set.
         """
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
         study = optuna.create_study(direction="maximize")
         study.optimize(
             lambda trial: self.fine_tuning_objective(df_train, df_valid, trial),

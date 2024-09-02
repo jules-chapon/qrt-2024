@@ -335,6 +335,6 @@ class ClassificationModel(abc.ABC):
             _ClassificationModel: _description_
         """
         # Load model from file
-        with pkl.load(open(os.path.join(path, f"{ name }.pkl"), "rb"), encoding="latin1") as model:
-            logging.info(f"Model '{ name }' loaded")
-            return model
+        model = pkl.load(open(os.path.join(path, f"{ name }.pkl"), "rb"), encoding="latin1")
+        logging.info(f"Model '{ name }' loaded")
+        return model

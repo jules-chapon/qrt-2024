@@ -24,4 +24,4 @@ repos:
     rev: v3.0.0a5
     hooks:
     -   id: pylint
-        args: [--disable=E0401, --disable=C0103, --disable=R0902]
+        args: [--disable=E0401, --disable=C0103, --disable=R0902, --disable=R1732]

@@ -41,7 +41,7 @@ You are now able to run the pipeline by running the following command in your te
 
 ```bash
 
-python
+python -m predict_foot_result
 
 ```
 
