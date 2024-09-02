@@ -3,7 +3,6 @@
 import numpy as np
 import pandas as pd
 
-from predict_foot_result.configs import names, constants
 from predict_foot_result.model.classification_model import (
     ClassificationModel,
     _ClassificationModel,
@@ -25,12 +24,8 @@ class DummyClassificationModel(ClassificationModel):
     def __init__(
         self: _ClassificationModel,
         name: str,
-        path: str | None = names.MODELS_FOLDER,
-        target: str | None = constants.TARGET,
         features: list | str | None = None,
         params: dict | None = None,
-        cols_id: list | str | None = names.ID,
-        train_valid_split: float = constants.TRAIN_VALID_SPLIT,
         metrics: dict | None = None,
     ) -> None:
         """
@@ -39,18 +34,11 @@ class DummyClassificationModel(ClassificationModel):
         Args:
             self (_ClassificationModel): Class object.
             name (str): Name of the model.
-            path (str | None, optional): Path to the model. Defaults to names.MODELS_FOLDER.
-            target (str | None, optional): Target of the model. Defaults to constants.TARGET.
             features (list | str | None, optional): Features of the model. Defaults to None.
             params (dict | None, optional): Hyperparameters of the model. Defaults to None.
-            cols_id (list | str | None, optional): Columns used as IDs. Defaults to None.
-            train_valid_split (float, optional): Train-validation split.
-                Defaults to constants.TRAIN_VALID_SPLIT.
             metrics (dict | None, optional): Metrics to evaluate the model. Defaults to None.
         """
-        super().__init__(
-            name, path, target, features, params, cols_id, train_valid_split, metrics
-        )
+        super().__init__(name=name, features=features, params=params, metrics=metrics)
 
     def train(
         self: _ClassificationModel,

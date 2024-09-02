@@ -25,12 +25,8 @@ class SmartClassificationModel(ClassificationModel):
     def __init__(
         self: _ClassificationModel,
         name: str,
-        path: str | None = names.MODELS_FOLDER,
-        target: str | None = constants.TARGET,
         features: list | str | None = None,
         params: dict | None = None,
-        cols_id: list | str | None = names.ID,
-        train_valid_split: float = constants.TRAIN_VALID_SPLIT,
         metrics: dict | None = None,
     ) -> None:
         """
@@ -39,18 +35,11 @@ class SmartClassificationModel(ClassificationModel):
         Args:
             self (_ClassificationModel): Class object.
             name (str): Name of the model.
-            path (str | None, optional): Path to the model. Defaults to names.MODELS_FOLDER.
-            target (str | None, optional): Target of the model. Defaults to constants.TARGET.
             features (list | str | None, optional): Features of the model. Defaults to None.
             params (dict | None, optional): Hyperparameters of the model. Defaults to None.
-            cols_id (list | str | None, optional): Columns used as IDs. Defaults to None.
-            train_valid_split (float, optional): Train-validation split.
-                Defaults to constants.TRAIN_VALID_SPLIT.
             metrics (dict | None, optional): Metrics to evaluate the model. Defaults to None.
         """
-        super().__init__(
-            name, path, target, features, params, cols_id, train_valid_split, metrics
-        )
+        super().__init__(name=name, features=features, params=params, metrics=metrics)
 
     def define_evaluation_metric_for_training(
         self: _ClassificationModel, df_train: pd.DataFrame, trial: optuna.Trial
@@ -67,16 +56,14 @@ class SmartClassificationModel(ClassificationModel):
             float: Evaluation metric for training.
         """
         # Define parameters
-        alpha = trial.suggest_uniform(names.ALPHA, -1, 1)
-        beta = trial.suggest_uniform(names.BETA, -1, alpha)
+        alpha = trial.suggest_float(
+            names.ALPHA, -constants.HIGH_VALUE_FEATURE, constants.HIGH_VALUE_FEATURE
+        )
+        beta = trial.suggest_float(names.BETA, -constants.HIGH_VALUE_FEATURE, alpha)
         # Create predicted labels
         df_train[names.TEAM_DIFF_WINRATE] = (
-            df_train[
-                f"{ names.HOME }_{ names.TEAM_GAME_WON }_{ names.SEASON }_{ names.AVERAGE }"
-            ]
-            - df_train[
-                f"{ names.AWAY }_{ names.TEAM_GAME_WON }_{ names.SEASON }_{ names.AVERAGE }"
-            ]
+            df_train[f"{ names.HOME }_{ names.TEAM_GAME_WON }_{ names.SEASON }_{ names.AVERAGE }"]
+            - df_train[f"{ names.AWAY }_{ names.TEAM_GAME_WON }_{ names.SEASON }_{ names.AVERAGE }"]
         )
         df_train[names.PREDICTED_LABEL] = np.where(
             df_train[names.TEAM_DIFF_WINRATE] >= alpha,
@@ -92,6 +79,7 @@ class SmartClassificationModel(ClassificationModel):
     def train(
         self: _ClassificationModel,
         df_train: pd.DataFrame,
+        df_valid: pd.DataFrame | None = None,
     ) -> None:
         """
         Train the model and store it to self.model.

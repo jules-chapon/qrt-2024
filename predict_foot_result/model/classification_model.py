@@ -21,9 +21,7 @@ from predict_foot_result.libs.feature_selection import (
 )
 
 
-_ClassificationModel = typing.TypeVar(
-    "_ClassificationModel", bound="ClassificationModel"
-)
+_ClassificationModel = typing.TypeVar("_ClassificationModel", bound="ClassificationModel")
 
 
 class ClassificationModel(abc.ABC):
@@ -40,12 +38,8 @@ class ClassificationModel(abc.ABC):
     def __init__(
         self: _ClassificationModel,
         name: str,
-        path: str | None = names.MODELS_FOLDER,
-        target: str | None = None,
         features: list | str | None = None,
         params: dict | None = None,
-        cols_id: list | str | None = names.ID,
-        train_valid_split: float = constants.TRAIN_VALID_SPLIT,
         metrics: dict | None = None,
     ) -> None:
         """
@@ -54,26 +48,19 @@ class ClassificationModel(abc.ABC):
         Args:
             self (_ClassificationModel): Class object.
             name (str): Name of the model.
-            path (str | None, optional): Path to the model. Defaults to names.MODELS_FOLDER.
-            target (str | None, optional): Target of the model. Defaults to None.
             features (list | str | None, optional): Features of the model. Defaults to None.
             params (dict | None, optional): Hyperparameters of the model. Defaults to None.
-            cols_id (list | str | None, optional): Columns used as IDs. Defaults to None.
-            train_valid_split (float, optional): Train-validation split.
-                Defaults to constants.TRAIN_VALID_SPLIT.
             metrics (dict | None, optional): Metrics to evaluate the model. Defaults to None.
         """
         self.name = name
-        self.path = path
+        self.path = names.MODELS_FOLDER
         self.model = None
-        self.target = target
+        self.target = constants.TARGET
         self.features = features
         self.params = params
-        self.cols_id = cols_id
-        self.scores = None
-        self.train_valid_split = train_valid_split
+        self.cols_id = names.ID
+        self.train_valid_split = constants.TRAIN_VALID_SPLIT
         self.metrics = metrics
-        return None
 
     def get_train_valid_sets(
         self: _ClassificationModel,
@@ -100,9 +87,9 @@ class ClassificationModel(abc.ABC):
                 int(self.train_valid_split * df_learning[col_date].nunique()),
                 df_learning[col_date].unique(),
             )
-            df_train = df_learning[
-                ~df_learning[col_date].isin(valid_dates)
-            ].sort_values(self.cols_id)
+            df_train = df_learning[~df_learning[col_date].isin(valid_dates)].sort_values(
+                self.cols_id
+            )
             df_valid = df_learning[df_learning[col_date].isin(valid_dates)].sort_values(
                 self.cols_id
             )
@@ -119,9 +106,7 @@ class ClassificationModel(abc.ABC):
         logging.info("Training and validation sets computed")
         return df_train, df_valid
 
-    def balance_labels(
-        self: _ClassificationModel, df_train: pd.DataFrame
-    ) -> pd.DataFrame:
+    def balance_labels(self: _ClassificationModel, df_train: pd.DataFrame) -> pd.DataFrame:
         """
         Balance labels in the training set.
 
@@ -154,20 +139,18 @@ class ClassificationModel(abc.ABC):
             self (_ClassificationModel): Class object.
             df_learning (pd.DataFrame): Learning dataset.
             list_features (List[str] | None, optional): List of features. Defaults to None.
-            list_cols_to_drop (List[str] | None, optional): List of columns to drop. Defaults to None.
+            list_cols_to_drop (List[str] | None, optional): List of columns to drop.
+                Defaults to None.
         """
         # Define features based on list_features or list_cols_to_drop.
         if list_features is not None:
             self.features = list_features
         elif list_cols_to_drop is not None:
-            self.features = [
-                col for col in df_learning.columns if col not in list_cols_to_drop
-            ]
+            self.features = [col for col in df_learning.columns if col not in list_cols_to_drop]
         # If no features are defined, use all columns.
         else:
             self.features = df_learning.columns.tolist()
         logging.info("Features have been defined")
-        return None
 
     def select_features(self: _ClassificationModel, df_train: pd.DataFrame) -> None:
         """
@@ -183,12 +166,8 @@ class ClassificationModel(abc.ABC):
         if self.features is None:
             raise ValueError("Features are not defined")
         # Feature selection
-        self.features = selecting_features_with_random_columns(
-            df_train, self.features, self.target
-        )
-        self.features = selecting_features_with_boruta(
-            df_train, self.features, self.target
-        )
+        self.features = selecting_features_with_random_columns(df_train, self.features, self.target)
+        self.features = selecting_features_with_boruta(df_train, self.features, self.target)
         logging.info("relevant features have been selected")
 
     @abc.abstractmethod
@@ -284,7 +263,7 @@ class ClassificationModel(abc.ABC):
     def fine_tune(
         self: _ClassificationModel,
         df_train: pd.DataFrame,
-        df_valid: pd.DataFrame,
+        df_valid: pd.DataFrame | None,
     ) -> None:
         """
         Fine-tune hypermarameters of the model.
@@ -308,7 +287,8 @@ class ClassificationModel(abc.ABC):
             self (_ClassificationModel): Class object.
             df_learning (pd.DataFrame): Learning dataset.
             is_balanced_data (bool, optional): Whether labels are balanced or not. Defaults to True.
-            feature_selection (bool, optional): whether feature selection is performed. Defaults to False.
+            feature_selection (bool, optional): whether feature selection is performed.
+                Defaults to False.
             fine_tuning (bool, optional): whether fine-tuning the model. Defaults to False.
         """
         self.define_features(df_learning)
@@ -336,6 +316,7 @@ class ClassificationModel(abc.ABC):
         os.makedirs(self.path, exist_ok=True)
         with open(os.path.join(self.path, f"{ self.name }.pkl"), "wb") as file:
             pkl.dump(self, file)
+        logging.info(f"Model '{ self.name }' saved")
 
     @classmethod
     def load_model(
@@ -354,6 +335,6 @@ class ClassificationModel(abc.ABC):
             _ClassificationModel: _description_
         """
         # Load model from file
-        return pkl.load(
-            open(os.path.join(path, f"{ name }.pkl"), "rb"), encoding="latin1"
-        )
+        with pkl.load(open(os.path.join(path, f"{ name }.pkl"), "rb"), encoding="latin1") as model:
+            logging.info(f"Model '{ name }' loaded")
+            return model

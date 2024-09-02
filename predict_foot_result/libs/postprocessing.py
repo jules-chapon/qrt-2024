@@ -3,6 +3,7 @@
 import os
 import numpy as np
 import pandas as pd
+from logger import logging
 
 from predict_foot_result.configs import names
 
@@ -52,6 +53,7 @@ def clean_predictions_format(df_predictions: pd.DataFrame) -> pd.DataFrame:
     )
     df_predictions.drop(columns=[names.PREDICTED_LABEL], inplace=True)
     df_predictions.columns = [col.upper() for col in df_predictions.columns]
+    logging.info("Predictions have been formatted")
     return df_predictions
 
 
@@ -66,7 +68,8 @@ def save_predictions(df_predictions: pd.DataFrame, file_name: str) -> None:
     df_predictions.to_csv(
         os.path.join(names.DATA_FOLDER, names.RESULT_FOLDER, file_name), index=False
     )
-    return None
+    logging.info(f"Saving { df_predictions.shape[0] } predictions")
+    logging.info(f"Path : { os.path.join(names.DATA_FOLDER, names.RESULT_FOLDER, file_name) }")
 
 
 def postprocessing_pipeline(
@@ -83,4 +86,3 @@ def postprocessing_pipeline(
     df_predictions = add_predictions_to_dataset(df_testing, array_predictions)
     df_predictions = clean_predictions_format(df_predictions)
     save_predictions(df_predictions, file_name)
-    return None

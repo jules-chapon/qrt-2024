@@ -51,9 +51,7 @@ def import_features(is_train: bool, is_home: bool, is_team: bool) -> pd.DataFram
     return df
 
 
-def rename_columns_for_home_or_away(
-    df_features: pd.DataFrame, is_home: bool
-) -> pd.DataFrame:
+def rename_columns_for_home_or_away(df_features: pd.DataFrame, is_home: bool) -> pd.DataFrame:
     """
     Rename columns to split between home and away features.
 
@@ -131,10 +129,7 @@ def keep_only_relevant_team_features(df_team_features: pd.DataFrame) -> pd.DataF
     # Define columns to keep
     cols_to_keep = (
         [names.ID]
-        + [
-            f"{ col }_{ names.SEASON }_{ names.AVERAGE }"
-            for col in constants.COLS_TEAM_FEATURES
-        ]
+        + [f"{ col }_{ names.SEASON }_{ names.AVERAGE }" for col in constants.COLS_TEAM_FEATURES]
         + [
             f"{ col }_{ names.LAST_MATCHES }_{ names.AVERAGE }"
             for col in constants.COLS_TEAM_FEATURES
@@ -157,9 +152,7 @@ def preprocessing_team_features(is_train: bool, is_home: bool) -> pd.DataFrame:
         pd.DataFrame: clean dataset of team features.
     """
     df_team_features = import_features(is_train=is_train, is_home=is_home, is_team=True)
-    df_team_features = keep_only_relevant_team_features(
-        df_team_features=df_team_features
-    )
+    df_team_features = keep_only_relevant_team_features(df_team_features=df_team_features)
     df_team_features = replace_numerical_missing_values_by_0(df_team_features)
     df_team_features = rename_columns_for_home_or_away(
         df_features=df_team_features, is_home=is_home
@@ -188,9 +181,7 @@ def rank_players_by_position_and_appearances(
     """
     df_player_features[names.PLAYER_RANK] = df_player_features.groupby(
         constants.COLS_GROUPBY_PLAYER
-    )["_".join([names.PLAYER_MINUTES_PLAYED, names.SEASON, names.SUM])].rank(
-        method="dense"
-    )
+    )["_".join([names.PLAYER_MINUTES_PLAYED, names.SEASON, names.SUM])].rank(method="dense")
     return df_player_features
 
 
@@ -208,8 +199,7 @@ def keep_only_relevant_players(df_player_features: pd.DataFrame) -> pd.DataFrame
         constants.dict_nb_players_by_position
     )
     df_player_features[names.PLAYER_TO_KEEP] = np.where(
-        df_player_features[names.PLAYER_RANK]
-        <= df_player_features[names.RANK_THRESHOLD],
+        df_player_features[names.PLAYER_RANK] <= df_player_features[names.RANK_THRESHOLD],
         True,
         False,
     )
@@ -239,9 +229,7 @@ def format_player_features(df_player_features: pd.DataFrame) -> pd.DataFrame:
     cols_stats = [
         col
         for col in df_player_features.columns
-        if col
-        not in constants.COLS_PLAYER_CATEGORICAL
-        + [names.PLAYER_TO_KEEP, names.PLAYER_RANK]
+        if col not in constants.COLS_PLAYER_CATEGORICAL + [names.PLAYER_TO_KEEP, names.PLAYER_RANK]
     ]
     df_new_format = pd.pivot_table(
         df_player_features,
@@ -251,8 +239,7 @@ def format_player_features(df_player_features: pd.DataFrame) -> pd.DataFrame:
         aggfunc="sum",
     )
     df_new_format.columns = [
-        f"{col[1]}_{col[2]}_{col[0]}" if col[1] != "" else col[0]
-        for col in df_new_format.columns
+        f"{col[1]}_{col[2]}_{col[0]}" if col[1] != "" else col[0] for col in df_new_format.columns
     ]
     return df_new_format
 
@@ -270,8 +257,8 @@ def keep_only_relevant_player_features(
     """
     # Defining columns to keep
     cols_to_keep = []
-    for position in constants.dict_nb_players_by_position.keys():
-        for rank in range(constants.dict_nb_players_by_position[position]):
+    for position, nb in constants.dict_nb_players_by_position.items():
+        for rank in range(nb):
             cols_to_add_season = [
                 f"{ position }_{ rank + 1 }_{ col_name }_{ names.SEASON }_{ names.AVERAGE }"
                 for col_name in constants.dict_relevant_features_by_position[position]
@@ -301,9 +288,7 @@ def preprocessing_player_features(
     Returns:
         pd.DataFrame: clean dataset of player features.
     """
-    df_player_features = import_features(
-        is_train=is_train, is_home=is_home, is_team=False
-    )
+    df_player_features = import_features(is_train=is_train, is_home=is_home, is_team=False)
     df_player_features = rank_players_by_position_and_appearances(df_player_features)
     df_player_features = keep_only_relevant_players(df_player_features)
     df_player_features = replace_numerical_missing_values_by_0(df_player_features)
@@ -335,6 +320,15 @@ def import_training_labels() -> pd.DataFrame:
 
 
 def clean_training_labels(df_labels: pd.DataFrame) -> pd.DataFrame:
+    """
+    Clean training dataset of labels.
+
+    Args:
+        df_labels (pd.DataFrame): DataFrame of training labels.
+
+    Returns:
+        pd.DataFrame: DataFrame of training labels.
+    """
     df_labels[names.LABEL] = np.where(
         df_labels[names.HOME_WINS] == 1,
         0,
@@ -388,6 +382,7 @@ def preprocessing_learning() -> pd.DataFrame:
             df_learning_player_away,
         ]
     )
+    logging.info("Preprocessing for learning done")
     return df_learning
 
 
@@ -410,16 +405,5 @@ def preprocessing_testing() -> pd.DataFrame:
             df_testing_player_away,
         ]
     )
+    logging.info("Preprocessing for testing done")
     return df_testing
-
-
-# df_player_0 = import_features(True, True, False)
-# df_player_1 = rank_players_by_position_and_appearances(df_player_0)
-# df_player_2 = keep_only_relevant_players(df_player_1)
-# df_player_3 = format_player_features(df_player_2)
-# df_player_4 = keep_only_relevant_player_features(df_player_3)
-
-# df_team_0 = import_features(True, True, True)
-# df_team_1 = keep_only_relevant_team_features(df_team_0)
-
-# df_features = merge_team_and_player_features(df_team_1, df_player_4)

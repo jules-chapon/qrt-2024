@@ -11,7 +11,7 @@ from predict_foot_result.configs import constants
 
 
 def selecting_features_with_boruta(
-    df: pd.DataFrame, features: List[str], target: str
+    df: pd.DataFrame, features: List[str] | None, target: str | None
 ) -> List[str]:
     """
     Select features using Boruta.
@@ -42,7 +42,7 @@ def selecting_features_with_boruta(
 
 
 def selecting_features_with_random_columns(
-    df: pd.DataFrame, features: List[str], target: str
+    df: pd.DataFrame, features: List[str] | None, target: str | None
 ) -> List[str]:
     """
     Select features that have less importance than random ones.

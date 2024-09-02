@@ -7,7 +7,7 @@ import optuna
 import numpy as np
 import pandas as pd
 
-from predict_foot_result.configs import names, constants
+from predict_foot_result.configs import constants
 from predict_foot_result.model.classification_model import (
     ClassificationModel,
     _ClassificationModel,
@@ -28,12 +28,7 @@ class LgbmClassificationModel(ClassificationModel):
     def __init__(
         self: _ClassificationModel,
         name: str,
-        path: str | None = names.MODELS_FOLDER,
-        target: str | None = constants.TARGET,
         features: list | str | None = None,
-        params: dict | None = constants.LGBM_PARAMS,
-        cols_id: list | str | None = names.ID,
-        train_valid_split: float = constants.TRAIN_VALID_SPLIT,
         metrics: dict | None = None,
     ) -> None:
         """
@@ -42,25 +37,18 @@ class LgbmClassificationModel(ClassificationModel):
         Args:
             self (_ClassificationModel): Class object.
             name (str): Name of the model.
-            path (str | None, optional): Path to the model. Defaults to names.MODELS_FOLDER.
-            target (str | None, optional): Target of the model. Defaults to None.
             features (list | str | None, optional): Features of the model. Defaults to None.
-            params (dict | None, optional): Hyperparameters of the model. Defaults to None.
-            cols_id (list | str | None, optional): Columns used as IDs. Defaults to None.
-            train_valid_split (float, optional): Train-validation split.
-                Defaults to constants.TRAIN_VALID_SPLIT.
             metrics (dict | None, optional): Metrics to evaluate the model. Defaults to None.
         """
         super().__init__(
-            name, path, target, features, params, cols_id, train_valid_split, metrics
+            name=name, features=features, params=constants.LGBM_PARAMS, metrics=metrics
         )
 
     def define_features(
         self: _ClassificationModel,
         df_learning: pd.DataFrame,
         list_features: List[str] | None = None,
-        list_cols_to_drop: List[str] | None = constants.LGBM_ID
-        + [constants.LGBM_LABEL],
+        list_cols_to_drop: List[str] | None = None,
     ) -> None:
         """
         Define features for the model.
@@ -70,9 +58,15 @@ class LgbmClassificationModel(ClassificationModel):
             df_learning (pd.DataFrame): Learning dataset.
             list_features (List[str] | None, optional): List of features. Defaults to None.
             list_cols_to_drop (List[str] | None, optional): List of columns to drop.
-                Defaults to 'constants.LGBM_ID + [constants.LGBM_LABEL]'.
+                Defaults to None.
         """
-        return super().define_features(df_learning, list_features, list_cols_to_drop)
+        if list_cols_to_drop is None:
+            list_cols_to_drop = constants.LGBM_ID + [constants.LGBM_LABEL]
+        return super().define_features(
+            df_learning=df_learning,
+            list_features=list_features,
+            list_cols_to_drop=list_cols_to_drop,
+        )
 
     def train(
         self: _ClassificationModel,
@@ -139,9 +133,10 @@ class LgbmClassificationModel(ClassificationModel):
         params["max_depth"] = trial.suggest_int("max_depth", 3, 15)
         params["num_leaves"] = trial.suggest_int("num_leaves", 20, 150)
         params["min_data_in_leaf"] = trial.suggest_int("min_data_in_leaf", 10, 100)
-        params["bagging_fraction"] = trial.suggest_uniform("bagging_fraction", 0.4, 1.0)
+        params["bagging_fraction"] = trial.suggest_float("bagging_fraction", 0.4, 1.0)
         params["bagging_freq"] = trial.suggest_int("bagging_freq", 1, 7)
-        params["feature_fraction"] = trial.suggest_uniform("feature_fraction", 0.4, 1.0)
+        params["feature_fraction"] = trial.suggest_float("feature_fraction", 0.4, 1.0)
+        params["lambda_l1"] = trial.suggest_float("lambda_l1", 0.01, 1.0)
         train_data = lgb.Dataset(df_train[self.features], label=df_train[self.target])
         valid_data = lgb.Dataset(df_valid[self.features], label=df_valid[self.target])
         lgbm_model = lgb.train(
