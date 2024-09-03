@@ -52,6 +52,16 @@ NB_OPTUNA_TRIALS = 10
 #                                                             #
 ###############################################################
 
+### FINAL VALUES
+
+IS_BALANCED_DATA = True
+
+FEATURE_SELECTION = False
+
+FINE_TUNING = True
+
+### TRAINING
+
 LGBM_LABEL = names.LABEL
 
 LGBM_ID = [names.ID, names.HOME_TEAM_NAME, names.AWAY_TEAM_NAME]

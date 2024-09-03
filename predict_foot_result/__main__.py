@@ -1,5 +1,7 @@
 """Pipeline of the project"""
 
+from predict_foot_result.configs import constants
+
 from predict_foot_result.libs.preprocessing import (
     preprocessing_learning,
     preprocessing_testing,
@@ -21,9 +23,9 @@ def learning_pipeline_lgbm(model_name: str) -> None:
     model = LgbmClassificationModel(model_name)
     model.training_pipeline(
         df_learning=df_learning,
-        is_balanced_data=True,
-        feature_selection=False,
-        fine_tuning=True,
+        is_balanced_data=constants.IS_BALANCED_DATA,
+        feature_selection=constants.FEATURE_SELECTION,
+        fine_tuning=constants.FINE_TUNING,
     )
     model.save_model()
 
@@ -32,7 +34,7 @@ def prediction_pipeline_lgbm(model_name: str) -> None:
     """
     This function executes the prediction pipeline using the LightGBM model.
 
-    Parameters:
+    Args:
         model_name (str): The name of the model to be used for prediction.
             This name should match the name used when saving the model.
     """
